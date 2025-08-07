@@ -7,15 +7,19 @@ import {
 } from "react-icons/fa";
 import { PiPlugsBold } from "react-icons/pi";
 import { FaShareNodes } from "react-icons/fa6";
+
 import logo from "../assets/logo.svg"; // Make sure your image is placed correctly
+import { useNavigate } from "react-router-dom";
+
 
 const Leftsidebar = ({ isOpen }) => {
+  const navigate = useNavigate();
   return (
     <div
       className="bg-white border-end shadow-sm d-flex flex-column align-items-center"
       style={{
         width: isOpen ? "220px" : "70px",
-        minHeight: "100vh",
+        height: "100vh",
         transition: "width 0.3s ease",
         position: "relative",
       }}
@@ -40,8 +44,8 @@ const Leftsidebar = ({ isOpen }) => {
 
       {/* Navigation Items */}
       <div className="nav flex-column p-3 w-100">
-        <SidebarItem icon={<FaHome />} text="Home" isOpen={isOpen} />
-        <SidebarItem icon={<FaShareNodes />} text="Workflow" isOpen={isOpen} />
+        <SidebarItem icon={<FaHome />} text="Home" isOpen={isOpen} onClick={() => navigate("/")} />
+        <SidebarItem icon={<FaShareNodes />} text="Create Workflow" isOpen={isOpen} onClick={() => navigate("/create-workflow")} />
         <SidebarItem icon={<FaQuestionCircle />} text="FAQ" isOpen={isOpen} />
         <SidebarItem icon={<PiPlugsBold />} text="Connection" isOpen={isOpen} />
       </div>
@@ -50,8 +54,9 @@ const Leftsidebar = ({ isOpen }) => {
 };
 
 
+
 // Sidebar item component
-const SidebarItem = ({ icon, text, isOpen }) => (
+const SidebarItem = ({ icon, text, isOpen, onClick }) => (
   <button
     className="btn btn-light text-start d-flex align-items-center mb-2 w-100"
     style={{
@@ -60,6 +65,7 @@ const SidebarItem = ({ icon, text, isOpen }) => (
       fontSize: "15px",
       borderRadius: "8px",
     }}
+    onClick={onClick}
   >
     {icon}
     {isOpen && <span>{text}</span>}

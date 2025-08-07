@@ -1,8 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import WorkflowCard from "../Component/WorkflowCard";
 
 const Home = () => {
-  const [workflows, setWorkflows] = useState([]);
+  const [workflows, setWorkflows] = useState(() => {
+    const saved = localStorage.getItem('workflows');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Update localStorage whenever workflows change
+    localStorage.setItem('workflows', JSON.stringify(workflows));
+  }, [workflows]);
 
   const handleDelete = (index) => {
     const updated = [...workflows];
@@ -11,8 +21,8 @@ const Home = () => {
   };
 
   const handleEdit = (index) => {
-    // You can implement edit navigation or modal here
-    alert("Edit workflow " + (workflows[index]?.name || index));
+    // Navigate to ReactFlow with the saved workflow data
+    navigate("/workflow", { state: { workflow: workflows[index], index } });
   };
 
   return (

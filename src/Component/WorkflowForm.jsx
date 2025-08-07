@@ -1,13 +1,8 @@
 import React from "react";
-import { ReactFlow } from "@reactflow/core";
-import { Background } from "@reactflow/background";
-import { Controls } from "@reactflow/controls";
-import { MiniMap } from "@reactflow/minimap";
+import { ReactFlow, Background, Controls, MiniMap } from "@xyflow/react";
 
-// Don't forget the CSS for each
-import "@reactflow/core/dist/style.css";
-import "@reactflow/controls/dist/style.css";
-import "@reactflow/minimap/dist/style.css";
+// Import the unified CSS
+import "@xyflow/react/dist/style.css";
 
 const WorkflowForm = ({ nodes, edges, onNodesChange, onEdgesChange }) => {
   return (

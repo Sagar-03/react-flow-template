@@ -20,7 +20,7 @@ const Navbar = ({ isOpen, toggleSidebar }) => {
         </span>
       </div>
 
-      <button type="button" className="btn btn-primary" onClick={() => navigate("/create-workflow") }>
+      <button type="button" className="btn btn-primary" onClick={() => navigate("/workflow") }>
         <span className="me-2">&#43;</span> Create New Work Flow
       </button>
     </nav>
