@@ -1,0 +1,158 @@
+/* ===== variables (optional) ===== */
+:root{
+  --brand:#7c3aed;
+  --blue:#2563eb;
+  --red:#ef4444;
+  --text:#0f172a;
+  --muted:#64748b;
+  --panel:#ffffff;
+  --canvas:#f8fafc;
+  --border:#e5e7eb;
+}
+
+/* Main workflow container */
+.workflow-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+/* Header styles */
+.workflow-header {
+  padding: 10px 16px;
+  border-bottom: 1px solid #e2e2e2;
+  background-color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 50px;
+}
+
+/* Content area */
+.workflow-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* DnD Flow container */
+.dndflow {
+  display: flex;
+  width: 100%;
+  height: 85vh;
+}
+
+/* React flow wrapper */
+.reactflow-wrapper {
+  flex: 1;
+  height: 100%;
+}
+
+/* Save button styles */
+.save-button {
+  background: #a855f7;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 12px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* React Flow specific overrides */
+.react-flow { background-color: var(--canvas); }
+.react-flow__node { max-width: 220px; }
+
+/* Make the controls more compact */
+.react-flow__controls-button {
+  width: 20px !important;
+  height: 20px !important;
+  padding: 2px !important;
+}
+
+/* Make the minimap more compact */
+.react-flow__minimap {
+  width: 100px !important;
+  height: 60px !important;
+  bottom: 10px !important;
+  left: 10px !important;
+  opacity: 0.9;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.react-flow__minimap-mask { fill: rgba(168, 85, 247, 0.1); }
+
+/* ===== NEW: DnD sidebar ===== */
+.dndflow { display:flex; width:100%; height:85vh; }
+
+.dnd-sidebar{
+  width: 250px;          /* widened */
+  min-width: 320px;
+  max-width: 360px;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.02), 0 0 0 1px rgba(0,0,0,0.02) inset;
+  padding: 16px;
+  overflow: auto;
+}
+
+/* Optional hint text inside sidebar */
+.dnd-sidebar .hint{
+  color: var(--muted);
+  margin: 0 0 12px 0;
+  font-size: 14px;
+}
+
+/* Draggable items (buttons) */
+.dnd-item{
+  display:block;
+  width:100%;
+  padding:10px 12px;
+  margin: 10px 0;
+  border-radius: 6px;
+  background:#fff;
+  border:1.5px solid #a855f7;
+  color: var(--text);
+  font-weight: 600;
+  text-align:center;
+  cursor: grab;
+  user-select:none;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .05s ease;
+}
+.dnd-item:hover{ box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+.dnd-item:active{ cursor: grabbing; transform: translateY(1px); }
+
+/* Color accents like the example */
+.dnd-item.input{   border-color: var(--blue); }
+/* .dnd-item.default{ border-color: var(--border); } */
+.dnd-item.output{  border-color: var(--red); }
+
+/* Canvas wrapper background */
+.reactflow-wrapper{ background: var(--canvas); }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .dndflow { flex-direction: column; }
+  .dnd-sidebar{
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    max-height: 140px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-content { flex-direction: row; }
+}
+
+/* Animation for smooth transitions */
+.dndflow, .react-flow, .node-sidebar, .dnd-sidebar {
+  transition: all 0.3s ease;
+}
+
+/* Ensure the main view fits within viewport */
+.workflow-page {
+  height: calc(100vh - 50px);
+  overflow: hidden;
+}

@@ -1,310 +1,119 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Handle, Position, useReactFlow } from "reactflow";
-import { FaEdit } from "react-icons/fa";
+import React, { useState, useEffect, useMemo } from 'react';
+import { Handle, Position } from '@xyflow/react';
+import MenuNodeSidebar from './MenuNodeSidebar';
+import './Menunode.css';
+import { createPortal } from 'react-dom';
 
-const MenuNode = ({ id, data, selected, onOpenSidebar }) => {
-  const initialItems = data.items && data.items.length > 0 ? data.items : [{ id: "item-1", label: "Initial Item" }];
-  const [items, setItems] = useState(initialItems);
-  const [inputValue, setInputValue] = useState("");
-  const [editingItemId, setEditingItemId] = useState(null);
-  const [editingLabel, setEditingLabel] = useState("");
+export default function MenuNode({ data, id }) {
+  const [showSidebar, setShowSidebar] = useState(false);
 
-  const nodeRef = useRef(null);
-  const { setNodes, setEdges, getEdges } = useReactFlow();
+  // Items list (menu options)
+  const items = data?.items || [];
 
-  // Update items when data changes
+  const handleItemsChange = (newItems) => {
+    if (data?.onChange) {
+      data.onChange(newItems, id);
+    }
+  };
+
+  // Close sidebar on ESC key
   useEffect(() => {
-    if (data.items && JSON.stringify(data.items) !== JSON.stringify(items)) {
-      setItems(data.items);
-    }
-  }, [data.items]);
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showSidebar) {
+        setShowSidebar(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showSidebar]);
 
-  // Update items when data changes
-  useEffect(() => {
-    if (data.items && JSON.stringify(data.items) !== JSON.stringify(items)) {
-      setItems(data.items);
-    }
-  }, [data.items]);
+  // Dynamic node size
+  const nodeHeight = useMemo(() => {
+    const baseHeight = 100;
+    const extraHeight = items.length * 25; // grows with handles
+    return baseHeight + extraHeight;
+  }, [items.length]);
 
-  // Add new item + edge
-  const addItem = (e) => {
-    e.preventDefault();
-    if (!inputValue.trim()) return;
-
-    const newItem = { id: `${id}-item-${Date.now()}`, label: inputValue };
-    const newItems = [...items, newItem];
-
-    setItems(newItems);
-    setInputValue("");
-
-    // Update node's data
-    setNodes((nds) =>
-      nds.map((n) =>
-        n.id === id ? { ...n, data: { ...n.data, items: newItems } } : n
-      )
-    );
-
-    // Create edge to the first available node (if any)
-    const allNodes = getEdges();
-    const existingTargets = allNodes.filter(edge => edge.source === id).map(edge => edge.target);
-    
-    // Add new edge (you can customize the target logic here)
-    setEdges((eds) => [
-      ...eds,
-      {
-        id: `edge-${newItem.id}`,
-        source: id,
-        sourceHandle: newItem.id,
-        target: existingTargets[0] || "placeholder", // Connect to first existing target or placeholder
-        label: newItem.label,
-        animated: true,
-        style: { stroke: '#6c63ff', strokeWidth: 2 },
-      },
-    ]);
-  };
-
-  // Open sidebar to edit the node
-  const handleEditClick = (e) => {
-    e.stopPropagation();
-    if (onOpenSidebar) {
-      onOpenSidebar({
-        nodeId: id,
-        nodeData: data,
-        items: items
-      });
-    }
-  };
-
-  // Remove item and edge
-  const removeItem = (itemId) => {
-    const newItems = items.filter((item) => item.id !== itemId);
-    setItems(newItems);
-
-    setNodes((nds) =>
-      nds.map((n) =>
-        n.id === id ? { ...n, data: { ...n.data, items: newItems } } : n
-      )
-    );
-
-    setEdges((eds) => eds.filter((e) => e.sourceHandle !== itemId));
-  };
-
-  const startEditing = (item) => {
-    setEditingItemId(item.id);
-    setEditingLabel(item.label);
-  };
-
-  const saveEditedItem = (itemId) => {
-    const newItems = items.map((item) =>
-      item.id === itemId ? { ...item, label: editingLabel } : item
-    );
-    setItems(newItems);
-
-    setNodes((nds) =>
-      nds.map((n) =>
-        n.id === id ? { ...n, data: { ...n.data, items: newItems } } : n
-      )
-    );
-
-    setEdges((eds) =>
-      eds.map((e) =>
-        e.sourceHandle === itemId ? { ...e, label: editingLabel } : e
-      )
-    );
-
-    setEditingItemId(null);
-    setEditingLabel("");
-  };
+  const nodeWidth = useMemo(() => {
+    const baseWidth = 150;
+    const extraWidth = items.length > 0 ? items.length * 20 : 0; // grow width with bottom handles
+    return baseWidth + extraWidth;
+  }, [items.length]);
 
   return (
-    <div
-      ref={nodeRef}
-      className={`menu-node${selected ? " selected" : ""}`}
-      style={{
-        minWidth: 340,
-        background: "#fff",
-        border: "2px solid #6c63ff",
-        borderRadius: 12,
-        boxShadow: "0 4px 16px rgba(108,99,255,0.08)",
-        padding: 0,
-        position: "relative",
-        overflow: "visible",
-        fontFamily: "inherit",
-      }}
-    >
+    <>
       <div
+        className="menu-node"
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "18px 18px 0 18px",
+          height: nodeHeight,
+          width: nodeWidth
         }}
       >
-        <div style={{ fontWeight: 700, fontSize: 28 }}>Menu Items</div>
-        <button
-          onClick={handleEditClick}
-          style={{
-            background: "#6c63ff",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            padding: "8px 12px",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "14px",
-            fontWeight: "500",
-            transition: "background-color 0.2s ease",
-          }}
-          onMouseOver={(e) => e.target.style.backgroundColor = "#5a52d5"}
-          onMouseOut={(e) => e.target.style.backgroundColor = "#6c63ff"}
-          title="Edit Menu Items"
+        {/* Fixed input handles */}
+        <Handle type="target" position={Position.Top} id="input-top" className="input-handle" />
+        <Handle type="target" position={Position.Left} id="input-left" className="input-handle" />
+
+        {/* Icon + labels */}
+        <div className="icon-circle">
+          <div className="icon-line"></div>
+          <div className="icon-line"></div>
+          <div className="icon-line"></div>
+        </div>
+        <div className="title">Menu </div>
+        {/* <div className="subtitle">Display menu options</div> */}
+
+        {/* Pen icon for editing */}
+        <div 
+          className="pen-icon"
+          onClick={() => setShowSidebar(true)}
+          title={`Edit menu (${items.length} items)`}
         >
-          <FaEdit size={14} />
-          Edit
-        </button>
-      </div>
-      <hr
-        style={{
-          margin: "12px 0 0 0",
-          border: 0,
-          borderTop: "2px solid #f2f2f2",
-        }}
-      />
-      <div style={{ padding: 18, paddingBottom: 0 }}>
-        {items.map((item) => (
-          <div
-            key={item.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              background: "#ffeaea",
-              borderRadius: 10,
-              marginBottom: 12,
-              padding: "8px 16px",
-              fontSize: 28,
-              fontWeight: 500,
-              position: "relative",
-            }}
-          >
-            <span style={{ color: "#ff3d3d", fontSize: 32, marginRight: 12 }}>●</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+          </svg>
+        </div>
 
-            {editingItemId === item.id ? (
-              <input
-                value={editingLabel}
-                onChange={(e) => setEditingLabel(e.target.value)}
-                onBlur={() => saveEditedItem(item.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") saveEditedItem(item.id);
-                }}
-                autoFocus
-                style={{
-                  fontSize: 24,
-                  padding: "4px 8px",
-                  flex: 1,
-                  border: "1px solid #ccc",
-                  borderRadius: 4,
-                }}
-              />
-            ) : (
-              <span onDoubleClick={() => startEditing(item)}>{item.label}</span>
-            )}
-
-            <button
-              style={{
-                marginLeft: "auto",
-                background: "none",
-                border: "none",
-                color: "#ff3d3d",
-                fontSize: 28,
-                cursor: "pointer",
-                position: "absolute",
-                right: 36,
-                top: 8,
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                removeItem(item.id);
-              }}
-              title="Remove"
-            >
-              ×
-            </button>
-
+        {/* Output handles — create BOTH right + bottom for each item */}
+        {items.map((item, index) => (
+          <React.Fragment key={index}>
+            {/* Right side */}
             <Handle
               type="source"
               position={Position.Right}
-              id={item.id}
+              id={`right-${index}`}
+              className="output-handle"
               style={{
-                top: "50%",
-                right: -8,
-                background: "#6c63ff",
-                width: 12,
-                height: 12,
-                borderRadius: "50%",
-                border: "2px solid #fff",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                top: `${40 + index * 25}px`
               }}
+              title={item}
+              isConnectable={true}
             />
-          </div>
+            {/* Bottom side */}
+            <Handle
+              type="source"
+              position={Position.Bottom}
+              id={`bottom-${index}`}
+              className="output-handle"
+              style={{
+                left: `${30 + index * 25}px`
+              }}
+              title={item}
+              isConnectable={true}
+            />
+          </React.Fragment>
         ))}
       </div>
-      <form
-        onSubmit={addItem}
-        style={{
-          display: "flex",
-          margin: "0 18px",
-          marginBottom: 0,
-          marginTop: 8,
-        }}
-      >
-        <input
-          type="text"
-          placeholder="Add new item..."
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          style={{
-            flex: 1,
-            fontSize: 22,
-            padding: "8px 12px",
-            border: "1.5px solid #e0e0e0",
-            borderRadius: "8px 0 0 8px",
-            outline: "none",
-            background: "#fafbfc",
-          }}
-        />
-        <button
-          type="submit"
-          style={{
-            fontSize: 22,
-            background: "#0047ff",
-            color: "#fff",
-            border: "none",
-            borderRadius: "0 8px 8px 0",
-            padding: "0 24px",
-            cursor: "pointer",
-          }}
-        >
-          Add
-        </button>
-      </form>
-      <div style={{ color: "#888", fontSize: 20, margin: "18px 0 0 18px" }}>Menu Node</div>
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="menu-in"
-        style={{
-          top: "50%",
-          left: -8,
-          background: "#6c63ff",
-          width: 12,
-          height: 12,
-          borderRadius: "50%",
-        }}
-      />
-    </div>
-  );
-};
 
-export default MenuNode;
+      {/* Sidebar portal */}
+      {showSidebar && createPortal(
+        <MenuNodeSidebar
+          items={items}
+          setItems={handleItemsChange}
+          onClose={() => setShowSidebar(false)}
+          isOpen={showSidebar}
+        />,
+        document.body
+      )}
+    </>
+  );
+}

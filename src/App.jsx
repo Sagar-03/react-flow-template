@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { ReactFlowProvider } from "reactflow"; // Import ReactFlowProvider
+import { ReactFlowProvider } from "@xyflow/react"; // Updated import
 import Navbar from "./Component/Navbar";
 import Leftsidebar from "./Component/Leftsidebar";
 import Home from "./Pages/Home";

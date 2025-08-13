@@ -45,7 +45,7 @@ const Leftsidebar = ({ isOpen }) => {
       {/* Navigation Items */}
       <div className="nav flex-column p-3 w-100">
         <SidebarItem icon={<FaHome />} text="Home" isOpen={isOpen} onClick={() => navigate("/")} />
-        <SidebarItem icon={<FaShareNodes />} text="Create Workflow" isOpen={isOpen} onClick={() => navigate("/create-workflow")} />
+        <SidebarItem icon={<FaShareNodes />} text="Create Workflow" isOpen={isOpen} onClick={() => navigate("/workflow")} />
         <SidebarItem icon={<FaQuestionCircle />} text="FAQ" isOpen={isOpen} />
         <SidebarItem icon={<PiPlugsBold />} text="Connection" isOpen={isOpen} />
       </div>

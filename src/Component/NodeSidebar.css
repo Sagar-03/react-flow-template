@@ -1,0 +1,108 @@
+/* @import url('./xy-theme.css'); */
+
+html,
+body {
+  margin: 0;
+  font-family: sans-serif;
+  box-sizing: border-box;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Node Sidebar Styles */
+.node-sidebar {
+  border-right: 1px solid #eee;
+  padding: 15px 10px;
+  font-size: 12px;
+  background: #fcfcfc;
+  width: 240px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.node-sidebar .hint {
+  margin-bottom: 10px;
+  color: #777;
+}
+
+/* DnD item styles */
+.dnd-item {
+  padding: 10px;
+  border: 1px solid #a855f7;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  cursor: grab;
+  background-color: white;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.dnd-item:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
+}
+
+.icon-circle.small {
+  margin-right: 4px;
+}
+
+.dnd-item.input {
+  border-color: #0041d0;
+}
+
+.dnd-item.output {
+  border-color: #ff0072;
+}
+
+.dnd-item.start {
+  border-color: #059669;
+  background-color: #10b981;
+  color: white;
+}
+
+.dnd-item.end {
+  border-color: #dc2626;
+  background-color: #ef4444;
+  color: white;
+}
+
+/* Icon styles within the sidebar items */
+.icon-circle.small {
+  background-color: #a855f7;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  margin-left: 85px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  align-items: center;
+}
+
+.icon-line {
+  background-color: #fff;
+  width: 12px;
+  height: 1px;
+}
+
+@media screen and (max-width: 768px) {
+  .node-sidebar {
+    width: 100%;
+    max-height: 200px;
+    border-right: none;
+    border-bottom: 1px solid #eee;
+  }
+  
+  /* Create a horizontal layout for small screens */
+  .dnd-item {
+    display: inline-flex;
+    margin-right: 10px;
+    width: auto;
+  }
+}

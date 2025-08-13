@@ -1,420 +1,298 @@
-
-import React, { useCallback, useState, useEffect, useMemo } from "react";
+import React, { useCallback, useRef, useMemo } from 'react';
 import {
   ReactFlow,
+  ReactFlowProvider,
   addEdge,
-  MiniMap,
-  Controls,
   Background,
+  Controls,
+  MiniMap,
   useNodesState,
   useEdgesState,
-} from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
-import { useNavigate, useLocation } from "react-router-dom";
-import MenuNode from "./MenuNode.jsx";
-import MenuNodeSidebar from "./MenuNodeSidebar.jsx";
-// import "../Component/MenuNode.css";
-// import "./ReactFlowDnD.css";
-import { useDnD } from "../Utils/DnDContext.jsx";
+} from '@xyflow/react'; // Updated import
+import '@xyflow/react/dist/style.css';
+import MenuNode from './MenuNode';
+import StartNode from './StartNode';
+import EndNode from './EndNode';
+import NodeSidebar from './NodeSidebar';
+import { useDnD, DnDProvider } from '../Utils/DnDContext';
+import './Workflow.css';
+
+// Define nodeTypes outside of the component to prevent recreation on each render
+const nodeTypes = {
+  menuNode: MenuNode,
+  startNode: StartNode,
+  endNode: EndNode,
+};
 
 const initialNodes = [
   {
-    id: "1",
-    type: "input",
-    data: { label: "Start Node" },
-    position: { x: 250, y: 5 },
+    id: 'start-1',
+    type: 'startNode',
+    position: { x: 100, y: 100 },
+    data: {},
+  },
+  {
+    id: '1',
+    type: 'menuNode',
+    position: { x: 350, y: 100 },
+    data: {
+      items: ['Option 1', 'Option 2'],
+    },
   },
 ];
 
-const initialEdges = [];
-
-const DnDPanel = ({ onDragStart }) => {
-  const [type, setType, addNodeByClick] = useDnD();
-  
-  return (
-    <aside className="p-3 bg-white border-end position-relative d-flex flex-column" 
-           style={{ 
-             width: "200px",
-             borderRight: "1px solid #dee2e6",
-             height: "100%"
-           }}>
-      
-      <div
-        className="p-3 bg-white mb-3 text-dark fw-normal text-center d-flex align-items-center justify-content-center"
-        style={{ 
-          cursor: "grab",
-          border: "1px solid #007bff",
-          borderRadius: "4px",
-          minHeight: "48px"
-        }}
-        onDragStart={(event) => onDragStart(event, "input")}
-        onClick={() => addNodeByClick("input")}
-        draggable
-      >
-        <span>Input Node</span>
-      </div>
-      
-      <div
-        className="p-3 bg-white mb-3 text-dark fw-normal text-center d-flex align-items-center justify-content-center"
-        style={{ 
-          cursor: "grab",
-          border: "1px solid #6c757d",
-          borderRadius: "4px",
-          minHeight: "48px"
-        }}
-        onDragStart={(event) => onDragStart(event, "default")}
-        onClick={() => addNodeByClick("default")}
-        draggable
-      >
-        <span>Default Node</span>
-      </div>
-      
-      <div
-        className="p-3 bg-white mb-3 text-dark fw-normal text-center d-flex align-items-center justify-content-center"
-        style={{ 
-          cursor: "grab",
-          border: "1px solid #e91e63",
-          borderRadius: "4px",
-          minHeight: "48px"
-        }}
-        onDragStart={(event) => onDragStart(event, "output")}
-        onClick={() => addNodeByClick("output")}
-        draggable
-      >
-        <span>Output Node</span>
-      </div>
-      
-      <div
-        className="p-3 bg-white mb-3 text-dark fw-normal text-center d-flex align-items-center justify-content-center"
-        style={{ 
-          cursor: "grab",
-          border: "1px solid #ff6b35",
-          borderRadius: "4px",
-          minHeight: "48px"
-        }}
-        onDragStart={(event) => onDragStart(event, "menu")}
-        onClick={() => addNodeByClick("menu")}
-        draggable
-      >
-        <span>Menu Node</span>
-      </div>
-    </aside>
-  );
-};
-
-const ReactFlowDnD = () => {
+function FlowCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [reactFlowInstance, setReactFlowInstance] = useState(null);
-  const [workflows, setWorkflows] = useState(() => {
-    const saved = localStorage.getItem('workflows');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    startPoint: "",
-    trigger: "text",
-    status: "Active",
-  });
-  
-  // Sidebar state
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedNodeData, setSelectedNodeData] = useState(null);
-  const [currentWorkflow, setCurrentWorkflow] = useState(null);
-  
-  const navigate = useNavigate();
-  const location = useLocation();
-  
-  // Get context values for managing nodes
-  const [type, setType, addNodeByClick, clickedNodeType, setNodePositions] = useDnD();
-  
-  // Handle workflow data from navigation state
-  useEffect(() => {
-    if (location.state && location.state.workflow) {
-      setCurrentWorkflow(location.state.workflow);
-      console.log('Loaded workflow:', location.state.workflow);
-    }
-  }, [location.state]);
-  
-  // Save workflows to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('workflows', JSON.stringify(workflows));
-  }, [workflows]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodeType] = useDnD();
+  const reactFlowWrapper = useRef(null);
+  const [reactFlowInstance, setReactFlowInstance] = React.useState(null);
+  const [workflowName, setWorkflowName] = React.useState("");
 
-  // Initialize node positions in context when nodes change
-  useEffect(() => {
-    const positions = nodes.map(node => node.position);
-    setNodePositions(positions);
-  }, [nodes, setNodePositions]);
+  // Handle item changes from MenuNode
+  const handleNodeDataChange = useCallback((updatedItems, nodeId) => {
+    console.log('Node data change for', nodeId, ':', updatedItems);
 
-  // Handle adding nodes when clicked (from context)
-  useEffect(() => {
-    if (clickedNodeType) {
-      const { type, position } = clickedNodeType;
-      const newNode = {
-        id: `${+new Date()}`,
-        type,
-        position,
-        data:
-          type === "menu"
-            ? { items: [{ id: "item-1", label: "Item 1" }] }
-            : { label: `${type.charAt(0).toUpperCase() + type.slice(1)} Node` },
-      };
-      setNodes((nds) => nds.concat(newNode));
-    }
-  }, [clickedNodeType, setNodes]);
-
-  // Handle sidebar open
-  const handleOpenSidebar = (nodeInfo) => {
-    setSelectedNodeData(nodeInfo);
-    setSidebarOpen(true);
-  };
-
-  // Handle sidebar close
-  const handleCloseSidebar = () => {
-    setSidebarOpen(false);
-    setSelectedNodeData(null);
-  };
-
-  // Handle node update from sidebar
-  const handleUpdateNode = (nodeId, updates) => {
+    // Update the node's data
     setNodes((nds) =>
-      nds.map((node) =>
-        node.id === nodeId
-          ? { ...node, data: { ...node.data, ...updates } }
-          : node
-      )
+      nds.map((node) => {
+        if (node.id === nodeId) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              items: updatedItems,
+            },
+          };
+        }
+        return node;
+      })
     );
-    
-    // Update edges if items changed
-    if (updates.items) {
-      const itemIds = updates.items.map(item => item.id);
-      
-      // Remove edges for deleted items
-      setEdges((eds) => eds.filter((edge) => {
+
+    // Clean up edges that are connected to deleted handles
+    setEdges((eds) =>
+      eds.filter((edge) => {
         if (edge.source === nodeId) {
-          return itemIds.includes(edge.sourceHandle);
+          // Keep default handle edges
+          if (edge.sourceHandle === 'output-default') {
+            return true;
+          }
+          // Extract handle index from handle ID
+          const handleIndex = parseInt(edge.sourceHandle.replace('output-', ''));
+          // Keep edge only if the handle index is still valid
+          return handleIndex < updatedItems.length;
         }
         return true;
-      }));
-      
-      // Update edge labels for existing items
-      setEdges((eds) => eds.map((edge) => {
+      })
+    );
+
+    // Update edge labels for existing connections
+    setEdges((eds) =>
+      eds.map((edge) => {
         if (edge.source === nodeId) {
-          const item = updates.items.find(item => item.id === edge.sourceHandle);
-          if (item) {
-            return { ...edge, label: item.label };
+          if (edge.sourceHandle === 'output-default') {
+            // Update default handle label
+            if (edge.label !== 'Default') {
+              return { ...edge, label: 'Default' };
+            }
+          } else {
+            const handleIndex = parseInt(edge.sourceHandle.replace('output-', ''));
+            const item = updatedItems[handleIndex];
+            if (item && edge.label !== item) {
+              return { ...edge, label: item };
+            }
           }
         }
         return edge;
-      }));
-    }
-  };
+      })
+    );
+  }, [setNodes, setEdges]);
 
-  const onConnect = useCallback((params) => {
-    const newEdge = {
-      ...params,
-      animated: true,
-      style: { stroke: '#6c63ff', strokeWidth: 2 },
-      labelStyle: { fill: '#6c63ff', fontWeight: 600 },
-      deletable: true,
-    };
-    setEdges((eds) => addEdge(newEdge, eds));
-  }, [setEdges]);
+  // Update node data with the onChange handler
+  React.useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          onChange: handleNodeDataChange,
+        },
+      }))
+    );
+  }, [handleNodeDataChange, setNodes]);
 
-  const onEdgeClick = useCallback((event, edge) => {
-    event.stopPropagation();
-    // Show a brief visual feedback before deletion
-    const edgeElement = event.target.closest('.react-flow__edge');
-    if (edgeElement) {
-      edgeElement.style.opacity = '0.5';
-      edgeElement.style.transition = 'opacity 0.2s ease';
-    }
-    
-    setTimeout(() => {
-      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-    }, 100);
-  }, [setEdges]);
+  const onConnect = useCallback(
+    (params) => {
+      console.log('Connection params:', params);
 
+      // Prevent self-connections (edges connecting a node to itself)
+      if (params.source === params.target) {
+        console.log('Self-connection prevented:', params);
+        return; // Don't create the edge
+      }
+
+      // Find the source node to get the item label
+      const sourceNode = nodes.find(node => node.id === params.source);
+      let edgeLabel = '';
+
+      if (sourceNode && sourceNode.data.items && params.sourceHandle) {
+        if (params.sourceHandle === 'output-default') {
+          edgeLabel = 'Default';
+        } else {
+          // Extract the index from the handle ID (e.g., "output-0" -> 0)
+          const handleIndex = parseInt(params.sourceHandle.replace('output-', ''));
+          const item = sourceNode.data.items[handleIndex];
+          if (item) {
+            edgeLabel = item;
+          }
+        }
+      }
+
+      const newEdge = {
+        ...params,
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#7c3aed', strokeWidth: 2 },
+        label: edgeLabel,
+        labelStyle: { fill: '#7c3aed', fontWeight: 600 },
+      };
+
+      console.log('Creating edge:', newEdge);
+      setEdges((eds) => addEdge(newEdge, eds));
+    },
+    [setEdges, nodes]
+  );
+
+  // Handle dropping a node onto the canvas
   const onDragOver = useCallback((event) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
+    event.dataTransfer.dropEffect = 'move';
   }, []);
 
+  // Handle the drop event to create a new node
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
-      const type = event.dataTransfer.getData("application/reactflow");
-      if (!type || !reactFlowInstance) return;
-      
-      // Use screenToFlowPosition instead of deprecated project method
+
+      if (!reactFlowInstance) return;
+
+      // Get the node type from the dataTransfer
+      const nodeType = event.dataTransfer.getData('application/reactflow');
+
+      // Check if we're dropping a valid node type
+      if (!nodeType) return;
+
+      // Get the position where the node was dropped
       const position = reactFlowInstance.screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
       });
-      
+
+      // Generate a unique node ID based on type
+      let newNodeId;
+      let newNodeData = {};
+
+      switch (nodeType) {
+        case 'startNode':
+          newNodeId = `start_${Date.now()}`;
+          newNodeData = {};
+          break;
+        case 'endNode':
+          newNodeId = `end_${Date.now()}`;
+          newNodeData = {};
+          break;
+        case 'menuNode':
+          newNodeId = `menu_${Date.now()}`;
+          newNodeData = {
+            items: ['New Option'], // Default items for new menu node
+            onChange: handleNodeDataChange,
+          };
+          break;
+        default:
+          return;
+      }
+
+      // Create the new node
       const newNode = {
-        id: `${+new Date()}`,
-        type,
+        id: newNodeId,
+        type: nodeType,
         position,
-        data:
-          type === "menu"
-            ? { items: [{ id: "item-1", label: "Item 1" }] }
-            : { label: `${type.charAt(0).toUpperCase() + type.slice(1)} Node` },
+        data: newNodeData,
       };
+
+      // Add the new node to the graph
       setNodes((nds) => nds.concat(newNode));
     },
-    [reactFlowInstance, setNodes]
+    [reactFlowInstance, setNodes, handleNodeDataChange]
   );
-
-  const onDragStart = (event, nodeType) => {
-    event.dataTransfer.setData("application/reactflow", nodeType);
-    event.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSave = (e) => {
-    e.preventDefault();
-    const now = new Date();
-    const workflow = {
-      ...form,
-      nodes: nodes,
-      edges: edges,
-      createdOn: now.toISOString().slice(0, 19).replace("T", " "),
-      updatedOn: now.toISOString().slice(0, 19).replace("T", " "),
-    };
-    setWorkflows([workflow, ...workflows]);
-    setForm({ name: "", startPoint: "", trigger: "text", status: "Active" });
-    setShowForm(false);
-    
-    // Navigate to home to see the cards
-    navigate("/");
-  };
-
-  // Memoize nodeTypes with sidebar handler
-  const memoizedNodeTypes = useMemo(() => ({
-    menu: (props) => <MenuNode {...props} onOpenSidebar={handleOpenSidebar} />,
-  }), []);
 
   return (
-    <div className="d-flex flex-column h-100">
-      <div className="d-flex justify-content-between align-items-center p-3 bg-light border-bottom">
+    <div className="workflow-container">
+      <div className="workflow-header">
         <div>
-          <h4 className="mb-0">Flow Designer</h4>
-          {currentWorkflow && (
-            <small className="text-muted">
-              Editing: {currentWorkflow.name} | Start Point: {currentWorkflow.startPoint}
-            </small>
-          )}
+          <h4>{workflowName}</h4>
         </div>
-        <button className="btn btn-success" onClick={() => setShowForm(true)}>
-          Save Workflow
-        </button>
+        <div>
+          <button className="save-button">
+            Save
+          </button>
+        </div>
       </div>
       
-      <div className="d-flex flex-grow-1">
-        <DnDPanel onDragStart={onDragStart} />
-        <div className="flex-grow-1 position-relative">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onEdgeClick={onEdgeClick}
-            onInit={setReactFlowInstance}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-            fitView
-            nodeTypes={memoizedNodeTypes}
-            edgesReconnectable={true}
-            deleteKeyCode={['Backspace', 'Delete']}
+      <div className="workflow-content">
+        <div className="dndflow">
+          <NodeSidebar />
+          <div 
+            className="reactflow-wrapper" 
+            ref={reactFlowWrapper}
           >
-            <MiniMap />
-            <Controls />
-            <Background />
-          </ReactFlow>
-        </div>
-      </div>
-      
-      {/* Menu Node Sidebar */}
-      <MenuNodeSidebar
-        isOpen={sidebarOpen}
-        onClose={handleCloseSidebar}
-        nodeData={selectedNodeData?.nodeData}
-        nodeId={selectedNodeData?.nodeId}
-        onUpdateNode={handleUpdateNode}
-      />
-      
-      {showForm && (
-        <div className="workflow-form-modal">
-          <div className="workflow-form-content">
-            <button
-              className="workflow-form-close"
-              onClick={() => setShowForm(false)}
-              aria-label="Close"
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              nodeTypes={nodeTypes}
+              onInit={setReactFlowInstance}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              fitView
+              minZoom={0.5}
+              maxZoom={1.5}
+              defaultzoom={0.8}
+              // Validate connections to prevent self-connections
+              connectionLineStyle={{ stroke: '#7c3aed', strokeWidth: 2 }}
+              isValidConnection={(connection) => {
+                // Don't allow connections to the same node
+                return connection.source !== connection.target;
+              }}
             >
-              &times;
-            </button>
-            <h2 className="mb-3">Save Workflow</h2>
-            <form onSubmit={handleSave}>
-              <div className="mb-3">
-                <label className="form-label">Bot Name</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Start Point</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  name="startPoint"
-                  value={form.startPoint}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Trigger Type</label>
-                <select
-                  className="form-select"
-                  name="trigger"
-                  value={form.trigger}
-                  onChange={handleChange}
-                >
-                  <option value="text">text</option>
-                  <option value="dynamic">dynamic</option>
-                </select>
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Status</label>
-                <select
-                  className="form-select"
-                  name="status"
-                  value={form.status}
-                  onChange={handleChange}
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-              <button type="submit" className="btn btn-primary">Save Workflow</button>
-            </form>
+              <MiniMap
+                nodeStrokeWidth={3}
+                zoomable
+                pannable
+                style={{ width: 100, height: 60 }}
+                position="bottom-left"
+              />
+              <Controls 
+                showInteractive={false}
+                position="bottom-right"
+              />
+              <Background gap={16} size={1} />
+            </ReactFlow>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
-};
+}
 
-export default ReactFlowDnD;
+export default function ReactDnd() {
+  return (
+    <ReactFlowProvider>
+      <DnDProvider>
+        <FlowCanvas />
+      </DnDProvider>
+    </ReactFlowProvider>
+  );
+}
